@@ -1,0 +1,26 @@
+{
+  "name": "SRT-IOS",
+  "version": "0.0.1",
+  "summary": "Compiled SRT library for mobile apps.",
+  "homepage": "https://www.srtalliance.org",
+  "license": {
+    "type": "MPL20",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "Alexander Sokolov": "alexander.sokolov@arcadia.spb.ru"
+  },
+  "platforms": {
+    "ios": "13.0"
+  },
+  "source": {
+    "git": "https://github.com/SoftwareCountry/SRT-IOS.git",
+    "tag": "0.0.1"
+  },
+  "ios": {
+    "vendored_frameworks": "SRT-IOS/Frameworks/libsrt.xcframework"
+  },
+  "xcconfig": {
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "arm64"
+  }
+}
