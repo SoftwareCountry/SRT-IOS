@@ -20,7 +20,14 @@
   "ios": {
     "vendored_frameworks": "SRT-IOS/Frameworks/libsrt.xcframework"
   },
-  "xcconfig": {
-    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "arm64"
+  "preserve_paths": "SRT-IOS/Frameworks/libsrt.xcframework",
+  "requires_arc": true,
+  "pod_target_xcconfig": {
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "arm64",
+    "EXCLUDED_ARCHS[sdk=iphoneos*]": "x86_64"
+  },
+  "user_target_xcconfig": {
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "arm64",
+    "EXCLUDED_ARCHS[sdk=iphoneos*]": "x86_64"
   }
 }

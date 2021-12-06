@@ -15,6 +15,16 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => "https://github.com/SoftwareCountry/SRT-IOS.git", :tag => "#{spec.version}" }
 
   spec.ios.vendored_frameworks = "SRT-IOS/Frameworks/libsrt.xcframework"
+  spec.preserve_paths = "SRT-IOS/Frameworks/libsrt.xcframework"
 
-  spec.xcconfig = { "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "arm64" }
+  spec.requires_arc = true
+
+  spec.pod_target_xcconfig = {
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "arm64",
+    "EXCLUDED_ARCHS[sdk=iphoneos*]" => "x86_64"
+  }
+  spec.user_target_xcconfig = {
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "arm64",
+    "EXCLUDED_ARCHS[sdk=iphoneos*]" => "x86_64"
+  }
 end

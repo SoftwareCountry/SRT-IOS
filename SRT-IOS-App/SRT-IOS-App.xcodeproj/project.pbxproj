@@ -7,18 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		78E671553C217222A96F955E /* Pods_SRT_IOS_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18BCD6BD5402AD1F0E58051C /* Pods_SRT_IOS_App.framework */; };
 		A6107BE3275A4FA400DB688D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6107BE2275A4FA400DB688D /* AppDelegate.swift */; };
 		A6107BE5275A4FA400DB688D /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6107BE4275A4FA400DB688D /* SceneDelegate.swift */; };
 		A6107BE7275A4FA400DB688D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6107BE6275A4FA400DB688D /* ViewController.swift */; };
 		A6107BEA275A4FA400DB688D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A6107BE8275A4FA400DB688D /* Main.storyboard */; };
 		A6107BEC275A4FA800DB688D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A6107BEB275A4FA800DB688D /* Assets.xcassets */; };
 		A6107BEF275A4FA800DB688D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A6107BED275A4FA800DB688D /* LaunchScreen.storyboard */; };
-		BFDDCCB6BFCBE6BC8109B5FE /* Pods_SRT_IOS_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D45C6EC12AE164BD90BCCA44 /* Pods_SRT_IOS_App.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		391F51561CC20D4F2EB9A3C8 /* Pods-SRT-IOS-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SRT-IOS-App.debug.xcconfig"; path = "Target Support Files/Pods-SRT-IOS-App/Pods-SRT-IOS-App.debug.xcconfig"; sourceTree = "<group>"; };
-		7F21B379C73A7FF487D7FB12 /* Pods-SRT-IOS-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SRT-IOS-App.release.xcconfig"; path = "Target Support Files/Pods-SRT-IOS-App/Pods-SRT-IOS-App.release.xcconfig"; sourceTree = "<group>"; };
+		18BCD6BD5402AD1F0E58051C /* Pods_SRT_IOS_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SRT_IOS_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		383523D0C1910064E829281F /* Pods-SRT-IOS-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SRT-IOS-App.debug.xcconfig"; path = "Target Support Files/Pods-SRT-IOS-App/Pods-SRT-IOS-App.debug.xcconfig"; sourceTree = "<group>"; };
 		A6107BDF275A4FA400DB688D /* SRT-IOS-App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SRT-IOS-App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6107BE2275A4FA400DB688D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A6107BE4275A4FA400DB688D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -28,7 +28,7 @@
 		A6107BEE275A4FA800DB688D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A6107BF0275A4FA800DB688D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A6107BF6275A505900DB688D /* SRT-IOS-App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SRT-IOS-App-Bridging-Header.h"; sourceTree = "<group>"; };
-		D45C6EC12AE164BD90BCCA44 /* Pods_SRT_IOS_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SRT_IOS_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C44D1D9EF292C8F4944BCA93 /* Pods-SRT-IOS-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SRT-IOS-App.release.xcconfig"; path = "Target Support Files/Pods-SRT-IOS-App/Pods-SRT-IOS-App.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,17 +36,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFDDCCB6BFCBE6BC8109B5FE /* Pods_SRT_IOS_App.framework in Frameworks */,
+				78E671553C217222A96F955E /* Pods_SRT_IOS_App.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		782AA35FAB74703180B7574A /* Frameworks */ = {
+		6E11B510775908CB726652C1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D45C6EC12AE164BD90BCCA44 /* Pods_SRT_IOS_App.framework */,
+				18BCD6BD5402AD1F0E58051C /* Pods_SRT_IOS_App.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -57,7 +57,7 @@
 				A6107BE1275A4FA400DB688D /* SRT-IOS-App */,
 				A6107BE0275A4FA400DB688D /* Products */,
 				EF6D7D9BB2B336ED54B01164 /* Pods */,
-				782AA35FAB74703180B7574A /* Frameworks */,
+				6E11B510775908CB726652C1 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -87,8 +87,8 @@
 		EF6D7D9BB2B336ED54B01164 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				391F51561CC20D4F2EB9A3C8 /* Pods-SRT-IOS-App.debug.xcconfig */,
-				7F21B379C73A7FF487D7FB12 /* Pods-SRT-IOS-App.release.xcconfig */,
+				383523D0C1910064E829281F /* Pods-SRT-IOS-App.debug.xcconfig */,
+				C44D1D9EF292C8F4944BCA93 /* Pods-SRT-IOS-App.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -100,7 +100,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A6107BF3275A4FA800DB688D /* Build configuration list for PBXNativeTarget "SRT-IOS-App" */;
 			buildPhases = (
-				F5518ECE4392E3B3C750C598 /* [CP] Check Pods Manifest.lock */,
+				04571CEFD9FE55A5A8954B27 /* [CP] Check Pods Manifest.lock */,
 				A6107BDB275A4FA400DB688D /* Sources */,
 				A6107BDC275A4FA400DB688D /* Frameworks */,
 				A6107BDD275A4FA400DB688D /* Resources */,
@@ -161,7 +161,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		F5518ECE4392E3B3C750C598 /* [CP] Check Pods Manifest.lock */ = {
+		04571CEFD9FE55A5A8954B27 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -336,7 +336,7 @@
 		};
 		A6107BF4275A4FA800DB688D /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 391F51561CC20D4F2EB9A3C8 /* Pods-SRT-IOS-App.debug.xcconfig */;
+			baseConfigurationReference = 383523D0C1910064E829281F /* Pods-SRT-IOS-App.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -366,7 +366,7 @@
 		};
 		A6107BF5275A4FA800DB688D /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7F21B379C73A7FF487D7FB12 /* Pods-SRT-IOS-App.release.xcconfig */;
+			baseConfigurationReference = C44D1D9EF292C8F4944BCA93 /* Pods-SRT-IOS-App.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
