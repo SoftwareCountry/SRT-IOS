@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
 
   spec.name         = "SRT-IOS"
-  spec.version      = "0.0.1"
+  spec.version      = "1.4.4"
   spec.summary      = "Compiled SRT library for mobile apps."
   spec.homepage     = "https://www.srtalliance.org"
 
@@ -20,10 +20,6 @@ Pod::Spec.new do |spec|
   spec.requires_arc = true
 
   spec.pod_target_xcconfig = {
-    "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "arm64 armv7 i386",
-    "EXCLUDED_ARCHS[sdk=iphoneos*]" => "x86_64 armv7 i386"
-  }
-  spec.user_target_xcconfig = {
     "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "arm64 armv7 i386",
     "EXCLUDED_ARCHS[sdk=iphoneos*]" => "x86_64 armv7 i386"
   }
