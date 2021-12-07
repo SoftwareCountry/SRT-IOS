@@ -1,0 +1,15 @@
+### macOS ###
+.DS_Store
+
+### Xcode ###
+xcuserdata/
+
+### CocoaPods ###
+Pods/
+**/Podfile.lock
+
+### SRT ###
+SRT/
+
+### OpenSSL ###
+OpenSSL/
