@@ -185,18 +185,17 @@ if [ x$IOS_TARGET_VERSION == x ]; then
     exit 1
 fi
 
-# clean
+clean
 
-# gitCloneOpenSSL
-# buildOpenSSL
+gitCloneOpenSSL
+buildOpenSSL
 
-# gitCloneSRT
-# buildSRT
+gitCloneSRT
+buildSRT
 
-# buildUniversal
-# createFramework
-# createXcframework
-updatePodspecs
+buildUniversal
+createFramework
+createXcframework
 
 if [ $CLEAN_AFTER == true ]; then
     echo "Clean all after build..."
