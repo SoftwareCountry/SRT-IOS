@@ -71,10 +71,12 @@ modified by
 // a +% b : shift a by b
 // a == b : equality is same as for just numbers
 
+namespace srt {
+
 /// The AvgBufSize class is used to calculate moving average of the buffer (RCV or SND)
 class AvgBufSize
 {
-    typedef srt::sync::steady_clock::time_point time_point;
+    typedef sync::steady_clock::time_point time_point;
 
 public:
     AvgBufSize()
@@ -100,10 +102,51 @@ private:
     double     m_dTimespanMAvg;
 };
 
+/// The class to estimate source bitrate based on samples submitted to the buffer.
+/// Is currently only used by the CSndBuffer.
+class CRateEstimator
+{
+    typedef sync::steady_clock::time_point time_point;
+    typedef sync::steady_clock::duration   duration;
+public:
+    CRateEstimator();
+
+public:
+    uint64_t getInRatePeriod() const { return m_InRatePeriod; }
+
+    /// Retrieve input bitrate in bytes per second
+    int getInputRate() const { return m_iInRateBps; }
+
+    void setInputRateSmpPeriod(int period);
+
+    /// Update input rate calculation.
+    /// @param [in] time   current time in microseconds
+    /// @param [in] pkts   number of packets newly added to the buffer
+    /// @param [in] bytes  number of payload bytes in those newly added packets
+    ///
+    /// @return Current size of the data in the sending list.
+    void updateInputRate(const time_point& time, int pkts = 0, int bytes = 0);
+
+    void resetInputRateSmpPeriod(bool disable = false) { setInputRateSmpPeriod(disable ? 0 : INPUTRATE_FAST_START_US); }
+
+private:                                                       // Constants
+    static const uint64_t INPUTRATE_FAST_START_US   = 500000;  //  500 ms
+    static const uint64_t INPUTRATE_RUNNING_US      = 1000000; // 1000 ms
+    static const int64_t  INPUTRATE_MAX_PACKETS     = 2000;    // ~ 21 Mbps of 1316 bytes payload
+    static const int      INPUTRATE_INITIAL_BYTESPS = BW_INFINITE;
+
+private:
+    int        m_iInRatePktsCount;  // number of payload bytes added since InRateStartTime
+    int        m_iInRateBytesCount; // number of payload bytes added since InRateStartTime
+    time_point m_tsInRateStartTime;
+    uint64_t   m_InRatePeriod;  // usec
+    int        m_iInRateBps;    // Input Rate in Bytes/sec
+};
+
 class CSndBuffer
 {
-    typedef srt::sync::steady_clock::time_point time_point;
-    typedef srt::sync::steady_clock::duration   duration;
+    typedef sync::steady_clock::time_point time_point;
+    typedef sync::steady_clock::duration   duration;
 
 public:
     // XXX There's currently no way to access the socket ID set for
@@ -112,7 +155,10 @@ public:
     // Currently just "unimplemented".
     std::string CONID() const { return ""; }
 
-    CSndBuffer(int size = 32, int mss = 1500);
+    /// @brief CSndBuffer constructor.
+    /// @param size initial number of blocks (each block to store one packet payload).
+    /// @param maxpld maximum packet payload.
+    CSndBuffer(int size = 32, int maxpld = 1500);
     ~CSndBuffer();
 
 public:
@@ -131,35 +177,44 @@ public:
     /// @param [in] data pointer to the user data block.
     /// @param [in] len size of the block.
     /// @param [inout] w_mctrl Message control data
+    SRT_ATTR_EXCLUDES(m_BufLock)
     void addBuffer(const char* data, int len, SRT_MSGCTRL& w_mctrl);
 
     /// Read a block of data from file and insert it into the sending list.
     /// @param [in] ifs input file stream.
     /// @param [in] len size of the block.
     /// @return actual size of data added from the file.
+    SRT_ATTR_EXCLUDES(m_BufLock)
     int addBufferFromFile(std::fstream& ifs, int len);
 
     /// Find data position to pack a DATA packet from the furthest reading point.
-    /// @param [out] data the pointer to the data position.
-    /// @param [out] msgno message number of the packet.
+    /// @param [out] packet the packet to read.
     /// @param [out] origintime origin time stamp of the message
     /// @param [in] kflags Odd|Even crypto key flag
+    /// @param [out] seqnoinc the number of packets skipped due to TTL, so that seqno should be incremented.
     /// @return Actual length of data read.
-    int readData(srt::CPacket& w_packet, time_point& w_origintime, int kflgs);
+    SRT_ATTR_EXCLUDES(m_BufLock)
+    int readData(CPacket& w_packet, time_point& w_origintime, int kflgs, int& w_seqnoinc);
+
+    /// Peek an information on the next original data packet to send.
+    /// @return origin time stamp of the next packet; epoch start time otherwise.
+    SRT_ATTR_EXCLUDES(m_BufLock)
+    time_point peekNextOriginal() const;
 
     /// Find data position to pack a DATA packet for a retransmission.
-    /// @param [out] data the pointer to the data position.
     /// @param [in] offset offset from the last ACK point (backward sequence number difference)
-    /// @param [out] msgno message number of the packet.
+    /// @param [out] packet the packet to read.
     /// @param [out] origintime origin time stamp of the message
     /// @param [out] msglen length of the message
     /// @return Actual length of data read (return 0 if offset too large, -1 if TTL exceeded).
-    int readData(const int offset, srt::CPacket& w_packet, time_point& w_origintime, int& w_msglen);
+    SRT_ATTR_EXCLUDES(m_BufLock)
+    int readData(const int offset, CPacket& w_packet, time_point& w_origintime, int& w_msglen);
 
     /// Get the time of the last retransmission (if any) of the DATA packet.
     /// @param [in] offset offset from the last ACK point (backward sequence number difference)
     ///
     /// @return Last time of the last retransmission event for the corresponding DATA packet.
+    SRT_ATTR_EXCLUDES(m_BufLock)
     time_point getPacketRexmitTime(const int offset);
 
     /// Update the ACK point and may release/unmap/return the user data according to the flag.
@@ -172,53 +227,44 @@ public:
     /// @return Current size of the data in the sending list.
     int getCurrBufSize() const;
 
+    SRT_ATTR_EXCLUDES(m_BufLock)
     int dropLateData(int& bytes, int32_t& w_first_msgno, const time_point& too_late_time);
 
     void updAvgBufSize(const time_point& time);
     int  getAvgBufSize(int& bytes, int& timespan);
     int  getCurrBufSize(int& bytes, int& timespan);
 
-    uint64_t getInRatePeriod() const { return m_InRatePeriod; }
+    /// @brief Get the buffering delay of the oldest message in the buffer.
+    /// @return the delay value.
+    SRT_ATTR_EXCLUDES(m_BufLock)
+    duration getBufferingDelay(const time_point& tnow) const;
+
+    uint64_t getInRatePeriod() const { return m_rateEstimator.getInRatePeriod(); }
 
     /// Retrieve input bitrate in bytes per second
-    int getInputRate() const { return m_iInRateBps; }
+    int getInputRate() const { return m_rateEstimator.getInputRate(); }
 
-    /// Update input rate calculation.
-    /// @param [in] time   current time in microseconds
-    /// @param [in] pkts   number of packets newly added to the buffer
-    /// @param [in] bytes  number of payload bytes in those newly added packets
-    ///
-    /// @return Current size of the data in the sending list.
-    void updateInputRate(const time_point& time, int pkts = 0, int bytes = 0);
+    void resetInputRateSmpPeriod(bool disable = false) { m_rateEstimator.resetInputRateSmpPeriod(disable); }
 
-    void resetInputRateSmpPeriod(bool disable = false) { setInputRateSmpPeriod(disable ? 0 : INPUTRATE_FAST_START_US); }
+    const CRateEstimator& getRateEstimator() const { return m_rateEstimator; }
+
+    void setRateEstimator(const CRateEstimator& other) { m_rateEstimator = other; }
 
 private:
     void increase();
-    void setInputRateSmpPeriod(int period);
-
-    struct Block; // Defined below
-    static time_point getSourceTime(const CSndBuffer::Block& block);
-
-private:                                                       // Constants
-    static const uint64_t INPUTRATE_FAST_START_US   = 500000;  //  500 ms
-    static const uint64_t INPUTRATE_RUNNING_US      = 1000000; // 1000 ms
-    static const int64_t  INPUTRATE_MAX_PACKETS     = 2000;    // ~ 21 Mbps of 1316 bytes payload
-    static const int      INPUTRATE_INITIAL_BYTESPS = BW_INFINITE;
 
 private:
-    srt::sync::Mutex m_BufLock; // used to synchronize buffer operation
+    mutable sync::Mutex m_BufLock; // used to synchronize buffer operation
 
     struct Block
     {
         char* m_pcData;  // pointer to the data block
-        int   m_iLength; // length of the block
+        int   m_iLength; // payload length of the block.
 
         int32_t    m_iMsgNoBitset; // message number
         int32_t    m_iSeqNo;       // sequence number for scheduling
-        time_point m_tsOriginTime; // original request time
+        time_point m_tsOriginTime; // block origin time (either provided from above or equals the time a message was submitted for sending.
         time_point m_tsRexmitTime; // packet retransmission time
-        uint64_t   m_llSourceTime_us;
         int        m_iTTL; // time to live (milliseconds)
 
         Block* m_pNext; // next block
@@ -236,7 +282,7 @@ private:
 
     // m_pBlock:         The head pointer
     // m_pFirstBlock:    The first block
-    // m_pCurrBlock:	The current block
+    // m_pCurrBlock:	 The current block
     // m_pLastBlock:     The last block (if first == last, buffer is empty)
 
     struct Buffer
@@ -249,21 +295,14 @@ private:
     int32_t m_iNextMsgNo; // next message number
 
     int m_iSize; // buffer size (number of packets)
-    int m_iMSS;  // maximum seqment/packet size
-
+    const int m_iBlockLen;  // maximum length of a block holding packet payload (excluding packet header).
     int m_iCount; // number of used blocks
 
     int        m_iBytesCount; // number of payload bytes in queue
     time_point m_tsLastOriginTime;
 
     AvgBufSize m_mavg;
-
-    int        m_iInRatePktsCount;  // number of payload bytes added since InRateStartTime
-    int        m_iInRateBytesCount; // number of payload bytes added since InRateStartTime
-    time_point m_tsInRateStartTime;
-    uint64_t   m_InRatePeriod;  // usec
-    int        m_iInRateBps;    // Input Rate in Bytes/sec
-    int        m_iAvgPayloadSz; // Average packet payload size
+    CRateEstimator m_rateEstimator;
 
 private:
     CSndBuffer(const CSndBuffer&);
@@ -272,10 +311,12 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#if (!ENABLE_NEW_RCVBUFFER)
+
 class CRcvBuffer
 {
-    typedef srt::sync::steady_clock::time_point time_point;
-    typedef srt::sync::steady_clock::duration   duration;
+    typedef sync::steady_clock::time_point time_point;
+    typedef sync::steady_clock::duration   duration;
 
 public:
     // XXX There's currently no way to access the socket ID set for
@@ -288,7 +329,7 @@ public:
     /// Construct the buffer.
     /// @param [in] queue  CUnitQueue that actually holds the units (packets)
     /// @param [in] bufsize_pkts in units (packets)
-    CRcvBuffer(srt::CUnitQueue* queue, int bufsize_pkts = DEFAULT_SIZE);
+    CRcvBuffer(CUnitQueue* queue, int bufsize_pkts = DEFAULT_SIZE);
     ~CRcvBuffer();
 
 public:
@@ -296,7 +337,7 @@ public:
     /// @param [in] unit pointer to a data unit containing new packet
     /// @param [in] offset offset from last ACK point.
     /// @return 0 is success, -1 if data is repeated.
-    int addData(srt::CUnit* unit, int offset);
+    int addData(CUnit* unit, int offset);
 
     /// Read data into a user buffer.
     /// @param [in] data pointer to user buffer.
@@ -402,7 +443,7 @@ public:
 
     bool     isRcvDataReady();
     bool     isRcvDataAvailable() { return m_iLastAckPos != m_iStartPos; }
-    srt::CPacket* getRcvReadyPacket(int32_t seqdistance);
+    CPacket* getRcvReadyPacket(int32_t seqdistance);
 
     /// Set TimeStamp-Based Packet Delivery Rx Mode
     /// @param [in] timebase localtime base (uSec) of packet time stamps including buffering delay
@@ -411,8 +452,9 @@ public:
 
     /// Add packet timestamp for drift caclculation and compensation
     /// @param [in] timestamp packet time stamp
+    /// @param [in] tsPktArrival arrival time of the packet used to extract the drift sample.
     /// @param [in] rtt RTT sample
-    bool addRcvTsbPdDriftSample(uint32_t timestamp, int rtt);
+    bool addRcvTsbPdDriftSample(uint32_t timestamp, const time_point& tsPktArrival, int rtt);
 
 #ifdef SRT_DEBUG_TSBPD_DRIFT
     void printDriftHistogram(int64_t iDrift);
@@ -464,7 +506,7 @@ private:
     /// data.
     size_t freeUnitAt(size_t p)
     {
-        srt::CUnit* u  = m_pUnit[p];
+        CUnit* u       = m_pUnit[p];
         m_pUnit[p]     = NULL;
         size_t rmbytes = u->m_Packet.getLength();
         m_pUnitQueue->makeUnitFree(u);
@@ -531,9 +573,9 @@ private:
     }
 
 private:
-    srt::CUnit** m_pUnit;      // Array of pointed units collected in the buffer
+    CUnit**     m_pUnit;      // Array of pointed units collected in the buffer
     const int   m_iSize;      // Size of the internal array of CUnit* items
-    srt::CUnitQueue* m_pUnitQueue; // the shared unit queue
+    CUnitQueue* m_pUnitQueue; // the shared unit queue
 
     int m_iStartPos;   // HEAD: first packet available for reading
     int m_iLastAckPos; // the last ACKed position (exclusive), follows the last readable
@@ -546,20 +588,24 @@ private:
                   // up to which data are already retrieved;
                   // in message reading mode it's unused and always 0)
 
-    srt::sync::Mutex m_BytesCountLock;   // used to protect counters operations
-    int              m_iBytesCount;      // Number of payload bytes in the buffer
-    int              m_iAckedPktsCount;  // Number of acknowledged pkts in the buffer
-    int              m_iAckedBytesCount; // Number of acknowledged payload bytes in the buffer
-    unsigned         m_uAvgPayloadSz;    // Average payload size for dropped bytes estimation
+    sync::Mutex m_BytesCountLock;   // used to protect counters operations
+    int         m_iBytesCount;      // Number of payload bytes in the buffer
+    int         m_iAckedPktsCount;  // Number of acknowledged pkts in the buffer
+    int         m_iAckedBytesCount; // Number of acknowledged payload bytes in the buffer
+    unsigned    m_uAvgPayloadSz;    // Average payload size for dropped bytes estimation
 
-    srt::CTsbpdTime  m_tsbpd;
+    CTsbpdTime  m_tsbpd;
 
-    AvgBufSize       m_mavg;
+    AvgBufSize  m_mavg;
 
 private:
     CRcvBuffer();
     CRcvBuffer(const CRcvBuffer&);
     CRcvBuffer& operator=(const CRcvBuffer&);
 };
+
+#endif // !ENABLE_NEW_RCVBUFFER
+
+} // namespace srt
 
 #endif

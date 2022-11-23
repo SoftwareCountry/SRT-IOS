@@ -93,6 +93,17 @@ modified by
 
 #include <exception>
 
+namespace srt_logging
+{
+    std::string SockStatusStr(SRT_SOCKSTATUS s);
+#if ENABLE_BONDING
+    std::string MemberStatusStr(SRT_MEMBERSTATUS s);
+#endif
+}
+
+namespace srt
+{
+
 // Class CUDTException exposed for C++ API.
 // This is actually useless, unless you'd use a DIRECT C++ API,
 // however there's no such API so far. The current C++ API for UDT/SRT
@@ -290,6 +301,7 @@ enum ETransmissionEvent
     TEV_SEND,       // --> When the packet is scheduled for sending - older CCC::onPktSent
     TEV_RECEIVE,    // --> When a data packet was received - older CCC::onPktReceived
     TEV_CUSTOM,     // --> probably dead call - older CCC::processCustomMsg
+    TEV_SYNC,       // --> Backup group. When rate estimation is derived from an active member, and update is needed.
 
     TEV_E_SIZE
 };
@@ -311,9 +323,7 @@ enum EInitEvent
     TEV_INIT_OHEADBW
 };
 
-namespace srt {
-    class CPacket;
-}
+class CPacket;
 
 // XXX Use some more standard less hand-crafted solution, if possible
 // XXX Consider creating a mapping between TEV_* values and associated types,
@@ -616,7 +626,7 @@ public:
 
    /// This behaves like seq1 - seq2, in comparison to numbers,
    /// and with the statement that only the sign of the result matters.
-   /// That is, it returns a negative value if seq1 < seq2,
+   /// Returns a negative value if seq1 < seq2,
    /// positive if seq1 > seq2, and zero if they are equal.
    /// The only correct application of this function is when you
    /// compare two values and it works faster than seqoff. However
@@ -1374,14 +1384,6 @@ public:
     }
 };
 
-namespace srt_logging
-{
-std::string SockStatusStr(SRT_SOCKSTATUS s);
-#if ENABLE_EXPERIMENTAL_BONDING
-std::string MemberStatusStr(SRT_MEMBERSTATUS s);
-#endif
-}
-
 // Version parsing
 inline ATR_CONSTEXPR uint32_t SrtVersion(int major, int minor, int patch)
 {
@@ -1412,92 +1414,8 @@ inline std::string SrtVersionString(int version)
     return buf;
 }
 
-bool SrtParseConfig(std::string s, srt::SrtConfig& w_config);
+bool SrtParseConfig(std::string s, SrtConfig& w_config);
 
-struct PacketMetric
-{
-    uint32_t pkts;
-    uint64_t bytes;
-
-    void update(uint64_t size)
-    {
-        ++pkts;
-        bytes += size;
-    }
-
-    void update(size_t mult, uint64_t value)
-    {
-        pkts += (uint32_t) mult;
-        bytes += mult * value;
-    }
-
-    uint64_t fullBytes();
-};
-
-template <class METRIC_TYPE>
-struct MetricOp;
-
-template <class METRIC_TYPE>
-struct MetricUsage
-{
-    METRIC_TYPE local;
-    METRIC_TYPE total;
-
-    void Clear()
-    {
-        MetricOp<METRIC_TYPE>::Clear(local);
-    }
-
-    void Init()
-    {
-        MetricOp<METRIC_TYPE>::Clear(total);
-        Clear();
-    }
-
-    void Update(uint64_t value)
-    {
-        local += value;
-        total += value;
-    }
-
-    void UpdateTimes(size_t mult, uint64_t value)
-    {
-        local += mult * value;
-        total += mult * value;
-    }
-};
-
-template <>
-inline void MetricUsage<PacketMetric>::Update(uint64_t value)
-{
-    local.update(value);
-    total.update(value);
-}
-
-template <>
-inline void MetricUsage<PacketMetric>::UpdateTimes(size_t mult, uint64_t value)
-{
-    local.update(mult, value);
-    total.update(mult, value);
-}
-
-template <class METRIC_TYPE>
-struct MetricOp
-{
-    static void Clear(METRIC_TYPE& m)
-    {
-        m = 0;
-    }
-};
-
-template <>
-struct MetricOp<PacketMetric>
-{
-    static void Clear(PacketMetric& p)
-    {
-        p.pkts = 0;
-        p.bytes = 0;
-    }
-};
+} // namespace srt
 
 #endif

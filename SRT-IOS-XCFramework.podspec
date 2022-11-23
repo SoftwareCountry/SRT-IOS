@@ -1,13 +1,13 @@
 Pod::Spec.new do |spec|
 
   spec.name         = "SRT-IOS-XCFramework"
-  spec.version      = "1.4.4"
+  spec.version      = "1.5.1"
   spec.summary      = "Compiled SRT library for mobile apps."
   spec.homepage     = "https://www.srtalliance.org"
 
   spec.license      = { :type => "MPL20", :file => "LICENSE" }
 
-  spec.author             = { "Alexander Sokolov" => "alexander.sokolov@arcadia.spb.ru" }
+  spec.author       = { "Alexander Sokolov" => "alexander.sokolov@softwarecountry.com" }
 
   spec.platform     = :ios
   spec.ios.deployment_target = "13.0"
