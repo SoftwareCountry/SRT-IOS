@@ -56,6 +56,8 @@ modified by
 #include "udt.h"
 #include "common.h"
 
+namespace srt {
+
 class CSndLossList
 {
 public:
@@ -185,6 +187,7 @@ private:
     int m_iTail;   // last node in the list;
     int m_iLength; // loss length
     int m_iSize;   // size of the static array
+    int m_iLargestSeq; // largest seq ever seen
 
 private:
     CRcvLossList(const CRcvLossList&);
@@ -262,5 +265,7 @@ struct CRcvFreshLoss
     Emod revoke(int32_t sequence);
     Emod revoke(int32_t lo, int32_t hi);
 };
+
+} // namespace srt
 
 #endif

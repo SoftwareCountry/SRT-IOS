@@ -73,6 +73,9 @@ written by
 // NOTE: SRT_VERSION is primarily defined in the build file.
 extern const int32_t SRT_DEF_VERSION;
 
+namespace srt
+{
+
 struct CSrtMuxerConfig
 {
     static const int DEF_UDP_BUFFER_SIZE = 65536;
@@ -174,7 +177,7 @@ struct CSrtConfig: CSrtMuxerConfig
         DEF_CONNTIMEO_S = 3;    // 3 seconds
 
     static const int      COMM_RESPONSE_TIMEOUT_MS      = 5 * 1000; // 5 seconds
-    static const uint32_t COMM_DEF_STABILITY_TIMEOUT_US = 80 * 1000;
+    static const uint32_t COMM_DEF_MIN_STABILITY_TIMEOUT_MS = 60;   // 60 ms
 
     // Mimimum recv flight flag size is 32 packets
     static const int    DEF_MIN_FLIGHT_PKT = 32;
@@ -218,8 +221,8 @@ struct CSrtConfig: CSrtMuxerConfig
     int      iSndDropDelay; // Extra delay when deciding to snd-drop for TLPKTDROP, -1 to off
     bool     bEnforcedEnc;  // Off by default. When on, any connection other than nopw-nopw & pw1-pw1 is rejected.
     int      iGroupConnect;    // 1 - allow group connections
-    int      iPeerIdleTimeout; // Timeout for hearing anything from the peer.
-    uint32_t uStabilityTimeout;
+    int      iPeerIdleTimeout_ms; // Timeout for hearing anything from the peer (ms).
+    uint32_t uMinStabilityTimeout_ms;
     int      iRetransmitAlgo;
 
     int64_t llInputBW;         // Input stream rate (bytes/sec). 0: use internally estimated input bandwidth
@@ -269,8 +272,8 @@ struct CSrtConfig: CSrtMuxerConfig
         , iSndDropDelay(0)
         , bEnforcedEnc(true)
         , iGroupConnect(0)
-        , iPeerIdleTimeout(COMM_RESPONSE_TIMEOUT_MS)
-        , uStabilityTimeout(COMM_DEF_STABILITY_TIMEOUT_US)
+        , iPeerIdleTimeout_ms(COMM_RESPONSE_TIMEOUT_MS)
+        , uMinStabilityTimeout_ms(COMM_DEF_MIN_STABILITY_TIMEOUT_MS)
         , iRetransmitAlgo(1)
         , llInputBW(0)
         , llMinInputBW(0)
@@ -308,37 +311,6 @@ struct CSrtConfig: CSrtMuxerConfig
     int set(SRT_SOCKOPT optName, const void* val, int size);
 };
 
-
-#if ENABLE_EXPERIMENTAL_BONDING
-
-struct SRT_SocketOptionObject
-{
-    struct SingleOption
-    {
-        uint16_t      option;
-        uint16_t      length;
-        unsigned char storage[1]; // NOTE: Variable length object!
-    };
-
-
-    std::vector<SingleOption*> options;
-
-    SRT_SocketOptionObject() {}
-
-    ~SRT_SocketOptionObject()
-    {
-        for (size_t i = 0; i < options.size(); ++i)
-        {
-            // Convert back
-            unsigned char* mem = reinterpret_cast<unsigned char*>(options[i]);
-            delete[] mem;
-        }
-    }
-
-    bool add(SRT_SOCKOPT optname, const void* optval, size_t optlen);
-};
-#endif
-
 template <typename T>
 inline T cast_optval(const void* optval)
 {
@@ -373,5 +345,33 @@ inline bool cast_optval(const void* optval, int optlen)
     }
     return false;
 }
+
+} // namespace srt
+
+struct SRT_SocketOptionObject
+{
+    struct SingleOption
+    {
+        uint16_t      option;
+        uint16_t      length;
+        unsigned char storage[1]; // NOTE: Variable length object!
+    };
+
+    std::vector<SingleOption*> options;
+
+    SRT_SocketOptionObject() {}
+
+    ~SRT_SocketOptionObject()
+    {
+        for (size_t i = 0; i < options.size(); ++i)
+        {
+            // Convert back
+            unsigned char* mem = reinterpret_cast<unsigned char*>(options[i]);
+            delete[] mem;
+        }
+    }
+
+    bool add(SRT_SOCKOPT optname, const void* optval, size_t optlen);
+};
 
 #endif

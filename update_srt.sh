@@ -41,8 +41,11 @@ buildOpenSSL()
 {
     echo "Build OpenSSL..."
     cd "$OPENSSL_PATH"
+
+    # Fix OpenSSL/build-libsslsk
+    sed -i'' -e "s/IOS_MIN_SDK_VERSION=\".*\"/IOS_MIN_SDK_VERSION=\"$IOS_TARGET_VERSION\"/g" "$OPENSSL_PATH/build-libssl.sh"
     
-    ./build-libssl.sh --cleanup --targets="ios-sim-cross-x86_64 ios64-cross-arm64"
+    ./build-libssl.sh --cleanup --targets="ios-sim-cross-x86_64 ios-cross-arm64"
     
     cd "$CURRENT_PATH"
 }

@@ -341,7 +341,12 @@ public:
     void         addEPoll(int eid);
     void         removeEPollEvents(const int eid);
     void         removeEPollID(const int eid);
+
+    /// @brief Update read-ready state.
+    /// @param sock member socket ID (unused)
+    /// @param sequence the latest packet sequence number available for reading.
     void         updateReadState(SRTSOCKET sock, int32_t sequence);
+
     void         updateWriteState();
     void         updateFailedLink();
     void         activateUpdateEvent(bool still_have_items);
@@ -370,7 +375,6 @@ public:
     void syncWithSocket(const srt::CUDT& core, const HandshakeSide side);
     int  getGroupData(SRT_SOCKGROUPDATA* pdata, size_t* psize);
     int  getGroupData_LOCKED(SRT_SOCKGROUPDATA* pdata, size_t* psize);
-    int  configure(const char* str);
 
     /// Predicted to be called from the reading function to fill
     /// the group data array as requested.
@@ -387,7 +391,7 @@ public:
 #endif
 
     void ackMessage(int32_t msgno);
-    void handleKeepalive(SocketData*);
+    void processKeepalive(SocketData*);
     void internalKeepalive(SocketData*);
 
 private:
@@ -395,7 +399,7 @@ private:
     // If so, grab the status of all member sockets.
     void getGroupCount(size_t& w_size, bool& w_still_alive);
 
-    class srt::CUDTUnited* m_pGlobal;
+    srt::CUDTUnited&  m_Global;
     srt::sync::Mutex  m_GroupLock;
 
     SRTSOCKET m_GroupID;
@@ -432,8 +436,7 @@ private:
         void erase(gli_t it);
     };
     GroupContainer m_Group;
-    bool           m_selfManaged;
-    bool           m_bSyncOnMsgNo;
+    const bool     m_bSyncOnMsgNo; // It goes into a dedicated HS field. Could be true for balancing groups (not implemented).
     SRT_GROUP_TYPE m_type;
     CUDTSocket*    m_listener; // A "group" can only have one listener.
     srt::sync::atomic<int> m_iBusy;
@@ -606,10 +609,10 @@ public:
 
 private:
     // Fields required for SRT_GTYPE_BACKUP groups.
-    senderBuffer_t   m_SenderBuffer;
-    int32_t          m_iSndOldestMsgNo; // oldest position in the sender buffer
-    volatile int32_t m_iSndAckedMsgNo;
-    uint32_t         m_uOPT_StabilityTimeout;
+    senderBuffer_t        m_SenderBuffer;
+    int32_t               m_iSndOldestMsgNo; // oldest position in the sender buffer
+    sync::atomic<int32_t> m_iSndAckedMsgNo;
+    uint32_t              m_uOPT_MinStabilityTimeout_us;
 
     // THIS function must be called only in a function for a group type
     // that does use sender buffer.
@@ -655,7 +658,7 @@ private:
     void recv_CollectAliveAndBroken(std::vector<srt::CUDTSocket*>& w_alive, std::set<srt::CUDTSocket*>& w_broken);
 
     /// The function polls alive member sockets and retrieves a list of read-ready.
-    /// [acquires lock for CUDT::s_UDTUnited.m_GlobControlLock]
+    /// [acquires lock for CUDT::uglobal()->m_GlobControlLock]
     /// [[using locked(m_GroupLock)]] temporally unlocks-locks internally
     ///
     /// @returns list of read-ready sockets
@@ -666,7 +669,7 @@ private:
     // This is the sequence number of a packet that has been previously
     // delivered. Initially it should be set to SRT_SEQNO_NONE so that the sequence read
     // from the first delivering socket will be taken as a good deal.
-    volatile int32_t m_RcvBaseSeqNo;
+    sync::atomic<int32_t> m_RcvBaseSeqNo;
 
     bool m_bOpened;    // Set to true when at least one link is at least pending
     bool m_bConnected; // Set to true on first link confirmed connected
@@ -680,10 +683,10 @@ private:
 
     // Signal for the blocking user thread that the packet
     // is ready to deliver.
-    srt::sync::Condition m_RcvDataCond;
-    srt::sync::Mutex     m_RcvDataLock;
-    volatile int32_t     m_iLastSchedSeqNo; // represetnts the value of CUDT::m_iSndNextSeqNo for each running socket
-    volatile int32_t     m_iLastSchedMsgNo;
+    sync::Condition       m_RcvDataCond;
+    sync::Mutex           m_RcvDataLock;
+    sync::atomic<int32_t> m_iLastSchedSeqNo; // represetnts the value of CUDT::m_iSndNextSeqNo for each running socket
+    sync::atomic<int32_t> m_iLastSchedMsgNo;
     // Statistics
 
     struct Stats
@@ -692,31 +695,29 @@ private:
         time_point tsActivateTime;   // Time when this group sent or received the first data packet
         time_point tsLastSampleTime; // Time reset when clearing stats
 
-        MetricUsage<PacketMetric> sent; // number of packets sent from the application
-        MetricUsage<PacketMetric> recv; // number of packets delivered from the group to the application
-        MetricUsage<PacketMetric>
-                                  recvDrop; // number of packets dropped by the group receiver (not received from any member)
-        MetricUsage<PacketMetric> recvDiscard; // number of packets discarded as already delivered
+        stats::Metric<stats::BytesPackets> sent; // number of packets sent from the application
+        stats::Metric<stats::BytesPackets> recv; // number of packets delivered from the group to the application
+        stats::Metric<stats::BytesPackets> recvDrop; // number of packets dropped by the group receiver (not received from any member)
+        stats::Metric<stats::BytesPackets> recvDiscard; // number of packets discarded as already delivered
 
         void init()
         {
             tsActivateTime = srt::sync::steady_clock::time_point();
-            sent.Init();
-            recv.Init();
-            recvDrop.Init();
-            recvDiscard.Init();
-
-            reset();
+            tsLastSampleTime = srt::sync::steady_clock::now();
+            sent.reset();
+            recv.reset();
+            recvDrop.reset();
+            recvDiscard.reset();
         }
 
         void reset()
         {
-            sent.Clear();
-            recv.Clear();
-            recvDrop.Clear();
-            recvDiscard.Clear();
-
             tsLastSampleTime = srt::sync::steady_clock::now();
+
+            sent.resetTrace();
+            recv.resetTrace();
+            recvDrop.resetTrace();
+            recvDiscard.resetTrace();
         }
     } m_stats;
 
@@ -808,7 +809,6 @@ public:
     // Property accessors
     SRTU_PROPERTY_RW_CHAIN(CUDTGroup, SRTSOCKET, id, m_GroupID);
     SRTU_PROPERTY_RW_CHAIN(CUDTGroup, SRTSOCKET, peerid, m_PeerGroupID);
-    SRTU_PROPERTY_RW_CHAIN(CUDTGroup, bool, managed, m_selfManaged);
     SRTU_PROPERTY_RW_CHAIN(CUDTGroup, SRT_GROUP_TYPE, type, m_type);
     SRTU_PROPERTY_RW_CHAIN(CUDTGroup, int32_t, currentSchedSequence, m_iLastSchedSeqNo);
     SRTU_PROPERTY_RRW(std::set<int>&, epollset, m_sPollID);
